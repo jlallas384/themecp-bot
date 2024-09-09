@@ -14,7 +14,6 @@ class Problem:
     index: str
     name: str
     rating: int | None
-
     def __init__(self, value):
         self.contest_id = value.get('contestId', None)
         self.index = value['index']

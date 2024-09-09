@@ -2,11 +2,12 @@ import codeforces
 from operator import attrgetter
 import random
 from typing import List
-from datetime import datetime
+from config import DATA_FOLDER
 
-def create_problems(handle: str, level: int):
+
+def choose_problems(handle: str, level: int):
     def get_problem_ratings():
-        with open('data/problem_ratings.txt', 'r') as f:
+        with open(DATA_FOLDER.joinpath('problem_ratings.txt'), 'r') as f:
             return list(map(int, f.readlines()[level - 1].split()))
 
     def get_solved_problems():
@@ -32,7 +33,7 @@ def create_problems(handle: str, level: int):
     unsolved_problems = list(
         filter(lambda problem: problem not in solved_problems, problem_set))
 
-    taken = []
+    taken: List[codeforces.Problem] = []
     for rating in get_problem_ratings():
         choices = list(filter(lambda problem: problem.rating ==
                        rating and problem not in taken, unsolved_problems))
@@ -41,12 +42,7 @@ def create_problems(handle: str, level: int):
     return suggested_tag, taken
 
 
-def get_level(rating: int):
-    rating = max(900, rating)
-    with open('data/levels.txt', 'r') as f:
+def get_level(handle: str):
+    rating = max(900, codeforces.get_rating(handle))
+    with open(DATA_FOLDER.joinpath('levels.txt'), 'r') as f:
         return max(level for level, bound in enumerate(map(int, f.readlines()), 1) if rating >= bound)
-
-for i in create_problems('jlallas384', 10):
-    print(i)
-# def get_performance(start_time: datetime, submissions: List[codeforces.Submission]):
-#     assert submissions == 4
