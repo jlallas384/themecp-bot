@@ -7,9 +7,11 @@ from database import User
 
 
 def verified_required():
-    def _f(ctx: commands.Context):
+    def predicate(ctx: commands.Context):
+        print('helllooo')
+        raise 10
         return User.find(ctx.author.id) is not None
-    return commands.check(_f)
+    return commands.check(predicate)
 
 
 class Verifier(commands.Cog):
@@ -37,7 +39,6 @@ class Verifier(commands.Cog):
         new_verify_list = []
         for ctx, handle in self.verify_list:
             submissions = codeforces.get_submissions(handle, count=1)
-            print('request done')
             messsage_time = ctx.message.created_at
             verified = False
             if submissions:
