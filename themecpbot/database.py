@@ -1,8 +1,11 @@
-from sqlalchemy import create_engine, String, ForeignKey, DateTime
-from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Mapped, mapped_column, DeclarativeBase
-from config import DATABASE_URL
 from datetime import datetime, timezone
 from typing import List, Optional
+
+from sqlalchemy import create_engine, String, ForeignKey
+from sqlalchemy.orm import sessionmaker, relationship, Mapped, mapped_column, DeclarativeBase
+
+from config import DATABASE_URL
+
 
 engine = create_engine(DATABASE_URL, echo=True)
 
@@ -45,7 +48,7 @@ class User(Base):
 
 
 class ProblemInfo(Base):
-    __tablename__ = 'problem_info'
+    __tablename__ = 'problem_infos'
     problem_info_id: Mapped[int] = mapped_column(primary_key=True)
     contest_id: Mapped[int]
     index: Mapped[str] = mapped_column(String(3))
@@ -93,6 +96,7 @@ class VirtualContest(Base):
         self.finished = True
         session.commit()
 
+
 class Problem(Base):
     __tablename__ = 'problems'
 
@@ -101,7 +105,7 @@ class Problem(Base):
     date_solved: Mapped[Optional[datetime]]
 
     problem_info_id: Mapped[int] = mapped_column(
-        ForeignKey('problem_info.problem_info_id'))
+        ForeignKey('problem_infos.problem_info_id'))
     virtual_contest_id: Mapped[int] = mapped_column(
         ForeignKey('virtual_contests.virtual_contest_id'))
 
