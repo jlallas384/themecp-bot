@@ -38,7 +38,7 @@ class Tasker(commands.Cog):
 
         embeds = [discord.Embed(title=problem.name, url=problem.url,
                                 description=f'Rating: {problem.rating}') for problem in problems]
-        await ctx.send(f'Tag: {tag}', embeds=embeds)
+        await ctx.reply(f'Tag: {tag}', embeds=embeds)
         await ctx.send(f'Good luck! {ctx.author.mention}')
 
     @start.error

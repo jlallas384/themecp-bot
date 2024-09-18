@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from sqlalchemy import create_engine, String, ForeignKey
+from sqlalchemy import create_engine, String, ForeignKey, BigInteger
 from sqlalchemy.orm import sessionmaker, relationship, Mapped, mapped_column, DeclarativeBase
 
 from config import DATABASE_URL
@@ -20,7 +20,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = 'users'
 
-    user_id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     handle: Mapped[str] = mapped_column(String(24))
     level: Mapped[int]
     contests: Mapped[List['VirtualContest']
@@ -72,8 +72,8 @@ class VirtualContest(Base):
         default=lambda: datetime.now(timezone.utc))
     finished: Mapped[bool] = mapped_column(default=False)
     tag: Mapped[str]
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.user_id'))
-    channel_id: Mapped[int]
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('users.user_id'))
+    channel_id: Mapped[int] = mapped_column(BigInteger)
     problems: Mapped[List['Problem']] = relationship(
         order_by='Problem.problem_id')
     user: Mapped[User] = relationship(back_populates='contests')
