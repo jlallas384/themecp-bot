@@ -9,7 +9,6 @@ import themecp
 from database import User
 
 
-
 def verified_required():
     def predicate(ctx: commands.Context):
         return User.find(ctx.author.id) is not None
@@ -52,7 +51,10 @@ class Verifier(commands.Cog):
             time - ctx.message.created_at).total_seconds() <= 60]
         new_verify_list = []
         for ctx, handle in self.verify_list:
-            submissions = codeforces.get_submissions(handle, count=1)
+            try:
+                submissions = codeforces.get_submissions(handle, count=1)
+            except codeforces.InvalidHandleException:
+                submissions = []
             messsage_time = ctx.message.created_at
             verified = False
             if submissions:

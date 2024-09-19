@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, relationship, Mapped, mapped_column, De
 from config import DATABASE_URL
 
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL)
 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -52,13 +52,15 @@ class ProblemInfo(Base):
     problem_info_id: Mapped[int] = mapped_column(primary_key=True)
     contest_id: Mapped[int]
     index: Mapped[str] = mapped_column(String(3))
+    name: Mapped[str]
+    rating: Mapped[int]
 
     @staticmethod
-    def create(contest_id: int, index: str):
+    def create(contest_id: int, index: str, name: str, rating: int):
         problem_info = session.query(ProblemInfo).where(
-            ProblemInfo.contest_id == contest_id and ProblemInfo.index == index).first()
+            (ProblemInfo.contest_id == contest_id) & (ProblemInfo.index == index)).first()
         if problem_info is None:
-            problem_info = ProblemInfo(contest_id=contest_id, index=index)
+            problem_info = ProblemInfo(contest_id=contest_id, index=index, name=name, rating=rating)
             session.add(problem_info)
             session.commit()
         return problem_info
@@ -78,8 +80,8 @@ class VirtualContest(Base):
         order_by='Problem.problem_id')
     user: Mapped[User] = relationship(back_populates='contests')
 
-    def add_problem(self, contest_id: int, index: str):
-        problem_info = ProblemInfo.create(contest_id, index)
+    def add_problem(self, contest_id: int, index: str, title: str, rating: int):
+        problem_info = ProblemInfo.create(contest_id, index, title, rating)
         problem = Problem(problem_info=problem_info,
                           virtual_contest_id=self.virtual_contest_id)
         session.add(problem)
