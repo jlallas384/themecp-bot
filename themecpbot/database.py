@@ -22,21 +22,20 @@ class User(Base):
 
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     handle: Mapped[str] = mapped_column(String(24))
-    level: Mapped[int]
     contests: Mapped[List['VirtualContest']
                      ] = relationship(back_populates='user')
 
     @staticmethod
-    def create(user_id: int, handle: str, level: int):
-        session.add(User(user_id=user_id, handle=handle, level=level))
+    def create(user_id: int, handle: str):
+        session.add(User(user_id=user_id, handle=handle))
         session.commit()
 
     @staticmethod
     def find(user_id: int):
         return session.get(User, user_id)
 
-    def create_contest(self, tag: str, channel_id: int):
-        contest = VirtualContest(user=self, tag=tag, channel_id=channel_id)
+    def create_contest(self, tag: str, channel_id: int, level: int):
+        contest = VirtualContest(user=self, tag=tag, channel_id=channel_id, level=level)
         session.add(contest)
         session.commit()
         return contest
@@ -74,6 +73,7 @@ class VirtualContest(Base):
         default=lambda: datetime.now(timezone.utc))
     finished: Mapped[bool] = mapped_column(default=False)
     tag: Mapped[str]
+    level: Mapped[int]
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey('users.user_id'))
     channel_id: Mapped[int] = mapped_column(BigInteger)
     problems: Mapped[List['Problem']] = relationship(

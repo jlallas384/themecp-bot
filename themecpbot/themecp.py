@@ -5,8 +5,15 @@ from typing import List
 from config import DATA_FOLDER
 from decimal import Decimal, ROUND_HALF_UP
 
+TAGS = ['implementation', 'math', 'brute force', 'constructive algorithms', 'greedy', 'sortings', 'dp', 'graphs', 'data structures',
+        'binary search', 'bitmasks', 'trees', 'combinatronics', 'two pointers', 'dsu', 'dfs and similar', 'bitmasks', 'number theory', 'probabilities', 'interactive', 'graphs']
 
-def choose_problems(handle: str, level: int):
+
+class InvalidTagException(Exception):
+    pass
+
+
+def choose_problems(handle: str, level: int, tag: str = None):
     def get_problem_ratings():
         with open(DATA_FOLDER.joinpath('problem_ratings.txt'), 'r') as f:
             return list(map(int, f.readlines()[level - 1].split()))
@@ -17,18 +24,25 @@ def choose_problems(handle: str, level: int):
             lambda sub: sub.verdict == 'OK', submissions))
         return set(solved_problems)
 
-    if level <= 25:
-        suggested_tags = ['implementation', 'math', 'brute force',
-                          'constructive algorithms', 'greedy', 'sortings']
-    elif level <= 40:
-        suggested_tags = ['brute force', 'math', 'constructive algorithms', 'graphs',
-                          'data structures', 'implementation', 'greedy', 'binary search', 'dp']
-    else:
-        suggested_tags = ['brute force', 'math', 'constructive algorithms',
-                          'graphs', 'bitmasks', 'data structures', 'implementation', 'trees']
+    def get_random_suggested_tag():
+        if level <= 25:
+            suggested_tags = ['implementation', 'math', 'brute force',
+                              'constructive algorithms', 'greedy', 'sortings']
+        elif level <= 40:
+            suggested_tags = ['brute force', 'math', 'constructive algorithms', 'graphs',
+                              'data structures', 'implementation', 'greedy', 'binary search', 'dp']
+        else:
+            suggested_tags = ['brute force', 'math', 'constructive algorithms',
+                              'graphs', 'bitmasks', 'data structures', 'implementation', 'trees']
+        return random.choice(suggested_tags)
 
-    suggested_tag = random.choice(suggested_tags)
-    problem_set = codeforces.get_problemset(suggested_tag)
+    if tag is None:
+        tag = get_random_suggested_tag()
+
+    if tag not in TAGS:
+        raise InvalidTagException()
+
+    problem_set = codeforces.get_problemset(tag)
     solved_problems = get_solved_problems()
 
     unsolved_problems = list(
@@ -40,14 +54,7 @@ def choose_problems(handle: str, level: int):
                        rating and problem not in taken, unsolved_problems))
         assert choices
         taken.append(random.choice(choices))
-    return suggested_tag, taken
-
-
-def get_level(handle: str):
-    rating = max(900, codeforces.get_rating(handle))
-    with open(DATA_FOLDER.joinpath('levels.txt'), 'r') as f:
-        return max(level for level, bound in enumerate(map(int, f.readlines()), 1) if rating >= bound)
-
+    return tag, taken
 
 def compute_performance(level: int, ratings: List[int], penalties: List[int]):
     assert len(penalties) == len(ratings) == 4

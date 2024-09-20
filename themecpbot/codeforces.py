@@ -14,6 +14,7 @@ class Problem:
     index: str
     name: str
     rating: int | None
+
     def __init__(self, value):
         self.contest_id = value.get('contestId', None)
         self.index = value['index']
@@ -38,33 +39,25 @@ class Submission:
 
 
 def get_problemset(*args):
-    resp = requests.get(f'{CODEFORCES_URL}/api/problemset.problems',
-                        params={'tags': ';'.join(args)})
-    if resp.status_code != 200:
-        raise Exception('Failed to fetch problemset')
+    try:
+        resp = requests.get(f'{CODEFORCES_URL}/api/problemset.problems',
+                            params={'tags': ';'.join(args)})
+        resp.raise_for_status()
+    except (requests.exceptions.Timeout, requests.exceptions.RequestException) as exc:
+        raise RuntimeError('Failed to fetch problemset') from exc
+        
     data = resp.json()
     assert data['status'] == 'OK'
     return list(map(Problem, data['result']['problems']))
 
-
 def get_submissions(handle: str, count=None):
-    resp = requests.get(f'{CODEFORCES_URL}/api/user.status',
+    try:
+        resp = requests.get(f'{CODEFORCES_URL}/api/user.status',
                         params={'handle': handle, 'count': count})
-    if resp.status_code != 200:
-        raise Exception('Failed to fetch submissions')
+        resp.raise_for_status()
+    except (requests.exceptions.Timeout, requests.exceptions.RequestException) as exc:
+        raise RuntimeError('Failed to fetch submissions') from exc
     data = resp.json()
     if data['status'] != 'OK':
         raise InvalidHandleException()
     return list(map(Submission, data['result']))
-
-
-def get_rating(handle: str):
-    resp = requests.get(f'{CODEFORCES_URL}/api/user.rating',
-                        params={'handle': handle})
-    if resp.status_code != 200:
-        raise Exception('Failed to fetch rating')
-    data = resp.json()
-    if data['status'] != 'OK':
-        raise InvalidHandleException()
-    ratings = data['result']
-    return ratings[-1]['newRating'] if ratings else 0

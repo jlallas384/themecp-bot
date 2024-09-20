@@ -1,11 +1,12 @@
 from datetime import datetime, timezone, timedelta
 from typing import List
+import logging
 
 from discord.ext import commands, tasks
 import discord
 from table2ascii import table2ascii, Alignment
 
-from verifier import verified_required
+from identifier import identified_required
 import themecp
 import database as db
 import codeforces
@@ -33,7 +34,7 @@ def is_problem_solved(submissions: List[codeforces.Submission], problem_info: db
             return datetime.fromtimestamp(submission.creation_time_seconds, timezone.utc)
 
 
-def build_results(contest: db.VirtualContest, delta_level: int):
+def build_results(contest: db.VirtualContest):
     penalties = [
         -1 if problem.date_solved is None
         else int(
@@ -53,8 +54,8 @@ def build_results(contest: db.VirtualContest, delta_level: int):
                     Alignment.LEFT, Alignment.LEFT]
     )
     performance = themecp.compute_performance(
-        contest.user.level, [problem.problem_info.rating for problem in contest.problems], penalties)
-    return f'```{table}\nPerformance: {performance}\nLevel: {contest.user.level} -> {contest.user.level + delta_level}```'
+        contest.level, [problem.problem_info.rating for problem in contest.problems], penalties)
+    return f'```{table}\nPerformance: {performance}\n```'
 
 
 class Tasker(commands.Cog):
@@ -63,14 +64,32 @@ class Tasker(commands.Cog):
         self.solved_checker_loop.start()
 
     @commands.command(name='start')
-    @verified_required()
-    async def start(self, ctx: commands.Context):
+    @identified_required()
+    async def start(self, ctx: commands.Context, level: int, *, tag: str = None):
         user = db.User.find(ctx.author.id)
+        logging.info('start %s %d %s', user.handle, level, tag)
+
         if user.current_contest is not None:
             return await handle_ongoing(user, ctx)
 
-        tag, problems = themecp.choose_problems(user.handle, user.level)
-        contest = user.create_contest(tag, ctx.channel.id)
+        if not (1 <= level <= 109):
+            embed = discord.Embed(
+                description='Level must be between 1 and 109', color=discord.Color.orange())
+            return await ctx.send(embed=embed)
+
+        try:
+            tag, problems = themecp.choose_problems(user.handle, level, tag)
+        except themecp.InvalidTagException:
+            embed = discord.Embed(
+                description=f'{tag} is not a valid tag', color=discord.Color.orange())
+            return await ctx.send(embed=embed)
+
+        if len(problems) < 4:
+            embed = discord.Embed(
+                description='Not enough problems', color=discord.Color.orange())
+            return await ctx.send(embed=embed)
+
+        contest = user.create_contest(tag, ctx.channel.id, level)
         for problem in problems:
             contest.add_problem(problem.contest_id,
                                 problem.index, problem.name, problem.rating)
@@ -84,10 +103,14 @@ class Tasker(commands.Cog):
     async def start_error(self, ctx: commands.Context, error: commands.CommandError):
         if isinstance(error, commands.CheckFailure):
             embed = discord.Embed(
-                description=f'You are not verified yet. Please verify first using the `{COMMAND_PREFIX}verify` command', color=discord.Color.orange())
+                description=f'You are not identified yet. Please identify first using the `{COMMAND_PREFIX}identify` command', color=discord.Color.orange())
             await ctx.send(embed=embed)
-
-    @tasks.loop(seconds=5)
+        if isinstance(error, commands.MissingRequiredArgument):
+            embed = discord.Embed(
+                description='Please provide your level', color=discord.Color.orange())
+            await ctx.send(embed=embed)
+            
+    @tasks.loop(seconds=45)
     async def solved_checker_loop(self):
         for contest in db.VirtualContest.get_active():
             date_started = contest.date_started.replace(tzinfo=timezone.utc)
@@ -118,7 +141,7 @@ class Tasker(commands.Cog):
         user, channel = await self.get_user_and_channel(user_id, channel_id)
         contest = db.User.find(user_id).current_contest
 
-        results = build_results(contest, +1)
+        results = build_results(contest)
         await channel.send(f"Yay! {user.mention}\n{results}")
         contest.finish()
 
@@ -126,7 +149,7 @@ class Tasker(commands.Cog):
         user, channel = await self.get_user_and_channel(user_id, channel_id)
         contest = db.User.find(user_id).current_contest
 
-        results = build_results(contest, -1)
+        results = build_results(contest)
         await channel.send(f"Time's up! {user.mention}\n{results}")
         contest.finish()
 
